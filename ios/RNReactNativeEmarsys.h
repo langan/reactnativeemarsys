@@ -6,6 +6,7 @@
 #endif
 
 @interface RNReactNativeEmarsys : NSObject <RCTBridgeModule>
-
++(void)setPushToken:(NSData *)deviceToken;
++(void)trackMessageOpenWithUserInfo:(NSDictionary *)userInfo;
 @end
-  
+
