@@ -95,7 +95,7 @@ public class RNReactNativeEmarsysModule extends ReactContextBaseJavaModule imple
   }
 
   @ReactMethod
-  public void trackDeepLink() {
+  public void appLogout() {
     Log.i(TAG, "appLogout");
     String result = MobileEngage.appLogout();
     Log.i(TAG, "appLogout result = " + result);
