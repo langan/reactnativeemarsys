@@ -31,6 +31,6 @@ repositories {
 }
 
 dependencies {
-    compile 'com.facebook.react:react-native:+'
+    implementation 'com.emarsys:mobile-engage-sdk:1.7.1'
+    implementation 'com.facebook.react:react-native:+'
 }
-  
