@@ -17,9 +17,13 @@ import com.emarsys.mobileengage.MobileEngage;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
+import com.facebook.react.bridge.ReadableType;
 
 import org.json.JSONObject;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class RNReactNativeEmarsysModule extends ReactContextBaseJavaModule implements EventHandler, NotificationEventHandler, MobileEngageStatusListener {
@@ -75,9 +79,22 @@ public class RNReactNativeEmarsysModule extends ReactContextBaseJavaModule imple
   }
 
   @ReactMethod
-  public void trackCustomEvent(String eventName, Map<String, String> eventAttributes) {
+  public void trackCustomEvent(String eventName, @Nullable ReadableMap eventAttributes) {
     Log.i(TAG, "trackCustomEvent");
-    String result = MobileEngage.trackCustomEvent(eventName, eventAttributes);
+    Map<String, String> eventAttributesMap = new HashMap<String, String>();
+    ReadableMapKeySetIterator iterator = eventAttributes.keySetIterator();
+    while (iterator.hasNextKey()) {
+      String key = iterator.nextKey();
+      ReadableType type = eventAttributes.getType(key);
+      switch (type) {
+        case String:
+          eventAttributesMap.put(key, eventAttributes.getString(key));
+          break;
+        default:
+          throw new IllegalArgumentException("Could not convert object with key: " + key + ".");
+      }
+    }
+    String result = MobileEngage.trackCustomEvent(eventName, eventAttributesMap);
     Log.i(TAG, "trackCustomEvent result = " + result);
   }
 
