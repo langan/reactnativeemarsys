@@ -1,80 +1,77 @@
 
 #import "RNReactNativeEmarsys.h"
 #import <React/RCTLog.h>
-#import "MobileEngage.h"
-#import "MEConfig.h"
-#import "MEConfigBuilder.h"
+#import "EMSConfig.h"
+#import "Emarsys.h"
+#import <React/RCTConvert.h>
 
 @implementation RNReactNativeEmarsys
 
-- (void)setPushToken:(NSData *)deviceToken
-{
-  RCTLogInfo(@"setPushToken");
-  [MobileEngage setPushToken:deviceToken];
-  RCTLogInfo(@"setPushToken done");
++ (void)init:(NSString *)applicationCode contactFieldId:(NSNumber *)contactFieldId {
+  EMSConfig *config = [EMSConfig makeWithBuilder:^(EMSConfigBuilder *builder) {
+    [builder setMobileEngageApplicationCode:applicationCode];
+    [builder setContactFieldId:contactFieldId];
+  }];
+  [Emarsys setupWithConfig:config];
 }
 
-- (void)trackMessageOpenWithUserInfo:(NSDictionary *)userInfo
++ (void)setPushToken:(NSData *)deviceToken
 {
-  RCTLogInfo(@"trackMessageOpenWithUserInfo");
-  NSString *eventId = [MobileEngage trackMessageOpenWithUserInfo:userInfo];
-  RCTLogInfo(@"trackMessageOpenWithUserInfo result %@", userInfo);
+  const char *data = [deviceToken bytes];
+  NSMutableString *stringToken = [NSMutableString string];
+  for (NSUInteger i = 0; i < [deviceToken length]; i++) {
+    [stringToken appendFormat:@"%02.2hhX", data[i]];
+  }
+  NSLog(@"EMARSYS - Setting push token to : %@", stringToken);
+  [Emarsys.push setPushToken:deviceToken completionBlock:^(NSError *error) {
+    if (NULL != error) {
+      RCTLogInfo(@"EMARSYS - error setting push token: %@", [error localizedDescription]);
+    }
+  }];
+}
+
++ (void)trackMessageOpenWithUserInfo:(NSDictionary *)userInfo
+{
+  RCTLogInfo(@"EMARSYS - trackMessageOpenWithUserInfo");
+  [Emarsys.push trackMessageOpenWithUserInfo:userInfo
+    completionBlock:^(NSError *error) {
+      if (NULL != error) {
+        RCTLogInfo(@"EMARSYS - error tracking open message: %@", [error localizedDescription]);
+      }
+    }
+  ];
 }
 
 RCT_EXPORT_MODULE();
 
-RCT_EXPORT_METHOD(init:(NSString *)applicationCode applicationPassword:(NSString *)applicationPassword)
+RCT_EXPORT_METHOD(requestPushAuth)
 {
-  RCTLogInfo(@"init %@ at %@", applicationCode, applicationPassword);
-  MEConfig *config = [MEConfig makeWithBuilder:^(MEConfigBuilder *builder) {
-    [builder setCredentialsWithApplicationCode:applicationCode applicationPassword:applicationPassword];
+  RCTLogInfo(@"EMARSYS - Requesting Push Authorisation");
+  UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+  [center requestAuthorizationWithOptions:(UNAuthorizationOptionSound | UNAuthorizationOptionAlert | UNAuthorizationOptionBadge) completionHandler:^(BOOL granted, NSError * _Nullable error){
+      if(!error){
+          [[UIApplication sharedApplication] registerForRemoteNotifications];
+      }
   }];
-  [MobileEngage setupWithConfig:config launchOptions:nil];
-  [MobileEngage setStatusDelegate:self];
-  RCTLogInfo(@"init finished");
 }
 
-RCT_EXPORT_METHOD(appLoginAnon)
+RCT_EXPORT_METHOD(clearPushToken)
 {
-  RCTLogInfo(@"appLoginAnon");
-  NSString *eventId = [MobileEngage appLogin];
-  RCTLogInfo(@"appLoginAnon result %@", eventId);
+  [Emarsys.push clearPushTokenWithCompletionBlock:^(NSError *error) {
+    if (NULL != error) {
+      RCTLogInfo(@"EMARSYS - error clearing push token: %@", [error localizedDescription]);
+    }
+  }];
 }
 
-RCT_EXPORT_METHOD(appLoginUser:(NSNumber *)id applicationPassword:(NSString *)value)
+RCT_EXPORT_METHOD(trackCustomEvent:(NSString *)eventName eventAttributes:(NSDictionary *)eventAttributes)
 {
-  RCTLogInfo(@"appLoginUser %@ at %@", id, value);
-  NSString *eventId = [MobileEngage appLoginWithContactFieldId:id
-                                             contactFieldValue:value];
-  RCTLogInfo(@"appLoginUser result %@", eventId);
-}
-
-RCT_EXPORT_METHOD(trackCustomEvent:(NSString *)eventName eventAttributes:(NSDictionary<NSString *, NSString *> *)eventAttributes)
-{
-  RCTLogInfo(@"trackCustomEvent %@ at %@", eventName, eventAttributes);
-  NSString *eventId = [MobileEngage trackCustomEvent:eventName
-                                     eventAttributes:eventAttributes];
-  RCTLogInfo(@"trackCustomEvent result %@", eventId);
-}
-
-RCT_EXPORT_METHOD(appLogout)
-{
-  RCTLogInfo(@"appLogout");
-  NSString *eventId = [MobileEngage appLogout];
-  RCTLogInfo(@"appLogout result %@", eventId);
-}
-
-#pragma mark - MobileEngageStatusDelegate
-- (void)mobileEngageErrorHappenedWithEventId:(NSString *)eventId
-                                       error:(NSError *)error {
-  RCTLogInfo(@"eventId %@ at %@", eventId, error.localizedDescription);
-  NSLog(@"eventId: %@, error: %@", eventId, error.localizedDescription);
-}
-
-- (void)mobileEngageLogReceivedWithEventId:(NSString *)eventId
-                                       log:(NSString *)log {
-  RCTLogInfo(@"eventId %@ at %@", eventId, log);
-  NSLog(@"eventId: %@, log: %@", eventId, log);
+  RCTLogInfo(@"EMARSYS - trackCustomEvent - %@", eventName);
+  [Emarsys trackCustomEventWithName:eventName eventAttributes:eventAttributes completionBlock:^(NSError *error) {
+    if (NULL != error) {
+      RCTLogInfo(@"EMARSYS - error sending event: %@", [error localizedDescription]);
+    }
+  }];
 }
 
 @end
