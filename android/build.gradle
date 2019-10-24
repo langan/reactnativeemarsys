@@ -12,12 +12,12 @@ buildscript {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 23
+    compileSdkVersion 28
     buildToolsVersion "23.0.1"
 
     defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 22
+        minSdkVersion 19
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
     }
@@ -31,6 +31,6 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.emarsys:mobile-engage-sdk:1.7.1'
+    implementation 'com.emarsys:emarsys-sdk:+'
     implementation 'com.facebook.react:react-native:+'
 }
